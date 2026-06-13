@@ -17,7 +17,6 @@ const nextConfig = {
     ],
     optimizePackageImports: [
       "@tanstack/react-query",
-      "ethers",
     ],
   },
   webpack: (config, { isServer }) => {

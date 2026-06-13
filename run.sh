@@ -40,7 +40,7 @@ install_deps() {
   # Retry loop: some VPS / NAS mounts (CIFS, NFS, FUSE) return ENOTEMPTY
   # during concurrent access. Retry with a clean slate up to 3 times.
   for attempt in 1 2 3; do
-    rm -rf node_modules frontend/node_modules package-lock.json frontend/package-lock.json
+    rm -rf node_modules package-lock.json
     if npm install --no-audit --no-fund --prefer-offline; then
       return 0
     fi
@@ -51,15 +51,19 @@ install_deps() {
   return 1
 }
 
-if [ ! -d node_modules ] || [ ! -d frontend/node_modules ]; then
+if [ ! -d node_modules ]; then
   install_deps
 else
   echo "→ node_modules present, skipping install"
 fi
 
 if [ ! -f .env ]; then
-  echo "→ Creating .env from .env.example"
-  cp .env.example .env
+  if [ -f .env.example ]; then
+    echo "→ Creating .env from .env.example"
+    cp .env.example .env
+  else
+    echo "→ Warning: .env.example not found, skipping .env creation"
+  fi
 fi
 
 # --- data store -------------------------------------------------------------
@@ -77,9 +81,11 @@ echo "  Press Ctrl-C to stop."
 cleanup() {
   echo ""
   echo "→ Shutting down..."
+  # Use pkill to ensure all child processes are cleaned up
   [ -n "${API_PID:-}" ] && kill "$API_PID" 2>/dev/null || true
   [ -n "${WEB_PID:-}" ] && kill "$WEB_PID" 2>/dev/null || true
-  wait 2>/dev/null || true
+  # Also kill any remaining node processes started by this script if possible
+  pkill -P $$ || true
   exit 0
 }
 trap cleanup INT TERM
@@ -88,8 +94,15 @@ trap cleanup INT TERM
 node server.js &
 API_PID=$!
 
-# Start Next dev (from frontend/)
-( cd frontend && npx next dev -p "$PORT_WEB" ) &
+# Start Next dev (Next.js is in the root package.json, no need to cd into frontend)
+# The frontend code is in the /frontend directory, but Next.js seems configured 
+# to run from the root or at least the dependencies are in the root.
+# Let's check if we need to pass the directory to next.
+if [ -d "frontend" ]; then
+    npx next dev frontend -p "$PORT_WEB" &
+else
+    npx next dev -p "$PORT_WEB" &
+fi
 WEB_PID=$!
 
 # Wait for either to exit
