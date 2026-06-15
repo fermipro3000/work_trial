@@ -1,4 +1,4 @@
-# NFT Airdrop Platform
+# NFT Airdrop Platform (Refactored)
 
 ## Built features
 
