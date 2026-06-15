@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { CampaignCard } from "@/components/CampaignCard";
+import { CampaignCard } from "@/components/features/CampaignCard";
 
 const statusOptions = ["", "active", "draft", "pending_review"];
 const eligibilityOptions = ["", "public", "whitelist", "erc20", "erc721", "role", "multi"];
@@ -14,104 +14,110 @@ export default function HomePage() {
   const [eligibilityType, setEligibilityType] = useState("");
 
   const queryKey = useMemo(
-    () => ["campaigns", status, eligibilityType, search],
+    () => ["campaigns", { status, eligibilityType, search }],
     [status, eligibilityType, search]
   );
 
   const { data, isLoading, error } = useQuery({
     queryKey,
-    queryFn: () => {
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (status) params.set("status", status);
       if (eligibilityType) params.set("eligibilityType", eligibilityType);
       if (search) params.set("q", search);
       return api(`/campaigns?${params.toString()}`);
     },
-    keepPreviousData: true,
   });
 
   const campaigns = data?.campaigns || [];
-  const resultsLabel = campaigns.length ? `${campaigns.length} campaigns found` : "No matching campaigns";
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl shadow-black/10">
-        <p className="text-sm uppercase tracking-[0.3em] text-brand-500">Airdrop marketplace</p>
-        <h1 className="mt-4 text-4xl font-bold leading-tight">Discover the next NFT campaign to claim.</h1>
-        <p className="mt-4 max-w-2xl text-sm text-[var(--muted)]">
-          Explore curated airdrops, verify eligibility, and claim NFTs from vetted creators. Use filters to find public, whitelist, or holder-only drops.
-        </p>
-        <div className="mt-6 grid gap-3 md:grid-cols-[1fr_auto]">
-          <div className="rounded-3xl border border-white/10 bg-black/30 p-4">
-            <label className="text-sm text-[var(--muted)]">Search campaigns</label>
+    <div className="space-y-12">
+      <section className="space-y-8">
+        <div className="max-w-3xl space-y-4">
+          <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl">
+            The future of <span className="text-blue-500">NFT Airdrops</span> is here.
+          </h1>
+          <p className="text-lg text-zinc-400">
+            Discover, verify, and claim exclusive NFT rewards from top creators. 
+            Filtered, vetted, and decentralized.
+          </p>
+        </div>
+
+        <div className="grid gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 md:grid-cols-[1fr_auto_auto]">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Search</label>
             <input
-              className="input mt-2"
-              placeholder="Search by name, description, or contract"
+              className="input"
+              placeholder="Search campaigns..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-3xl border border-white/10 bg-black/30 p-4">
-              <label className="text-sm text-[var(--muted)]">Status</label>
-              <select
-                className="input mt-2"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option || "all"} value={option}>
-                    {option ? option.replace("_", " ") : "All statuses"}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="rounded-3xl border border-white/10 bg-black/30 p-4">
-              <label className="text-sm text-[var(--muted)]">Eligibility</label>
-              <select
-                className="input mt-2"
-                value={eligibilityType}
-                onChange={(e) => setEligibilityType(e.target.value)}
-              >
-                {eligibilityOptions.map((option) => (
-                  <option key={option || "all"} value={option}>
-                    {option ? option.replace("erc", "ERC-") : "All eligibility"}
-                  </option>
-                ))}
-              </select>
-            </div>
+          
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Status</label>
+            <select
+              className="input min-w-[160px]"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              {statusOptions.filter(Boolean).map((opt) => (
+                <option key={opt} value={opt}>{opt.replace("_", " ")}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Eligibility</label>
+            <select
+              className="input min-w-[160px]"
+              value={eligibilityType}
+              onChange={(e) => setEligibilityType(e.target.value)}
+            >
+              <option value="">All Types</option>
+              {eligibilityOptions.filter(Boolean).map((opt) => (
+                <option key={opt} value={opt}>{opt.toUpperCase()}</option>
+              ))}
+            </select>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-[var(--muted)]">{resultsLabel}</p>
-        <div className="flex flex-wrap gap-2">
-          {statusOptions.map((s) => (
-            <button
-              key={s || "all"}
-              type="button"
-              className={`btn-ghost text-sm ${status === s ? "border-brand-500 bg-brand-500/10 text-white" : ""}`}
-              onClick={() => setStatus(s)}
-            >
-              {s ? s.replace("_", " ") : "All"}
-            </button>
-          ))}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Featured Campaigns</h2>
+          <span className="text-sm text-zinc-500">
+            {isLoading ? "Loading..." : `${campaigns.length} results`}
+          </span>
         </div>
-      </div>
 
-      {isLoading && (
-        <div className="rounded-3xl border border-white/10 bg-black/30 p-6 text-center text-sm text-[var(--muted)]">
-          Loading campaigns…
-        </div>
-      )}
-      {error && <p className="text-red-400">{error.message}</p>}
+        {error && (
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
+            Error loading campaigns: {error.message}
+          </div>
+        )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {campaigns.map((campaign) => (
-          <CampaignCard key={campaign.id} campaign={campaign} />
-        ))}
-      </div>
+        {isLoading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="card h-64 animate-pulse bg-white/5" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {campaigns.map((c) => (
+              <CampaignCard key={c.id} campaign={c} />
+            ))}
+            {campaigns.length === 0 && !isLoading && (
+              <div className="col-span-full py-20 text-center text-zinc-500">
+                No campaigns found matching your criteria.
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

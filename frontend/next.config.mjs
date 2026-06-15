@@ -15,9 +15,9 @@ const nextConfig = {
       "bullmq",
       "ioredis",
     ],
-    optimizePackageImports: [
-      "@tanstack/react-query",
-    ],
+    // optimizePackageImports: [
+    //   "@tanstack/react-query",
+    // ],
   },
   webpack: (config, { isServer }) => {
     // Keep node-only modules out of the client bundle

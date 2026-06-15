@@ -12,22 +12,24 @@ const links = [
 
 export function Nav() {
   return (
-    <header className="border-b border-white/10 bg-black/40">
+    <header className="border-b border-white/10 bg-black/40 sticky top-0 z-50 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="text-lg font-bold text-brand-500">
+        <Link href="/" className="text-xl font-bold tracking-tight text-blue-500">
           AirdropHub
         </Link>
-        <nav className="hidden gap-6 md:flex">
+        
+        <nav className="hidden gap-8 md:flex">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="text-sm text-[var(--muted)] hover:text-white"
+              className="text-sm font-medium text-zinc-400 transition-colors hover:text-white"
             >
               {l.label}
             </Link>
           ))}
         </nav>
+        
         <WalletConnector />
       </div>
     </header>

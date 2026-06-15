@@ -1,140 +1,106 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { EligibilityChecker } from "@/components/EligibilityChecker";
-import { ClaimButton } from "@/components/ClaimButton";
-
-const badgeLabels = {
-  public: "Public drop",
-  whitelist: "Whitelist only",
-  erc20: "ERC-20 holders",
-  erc721: "NFT holders",
-  role: "Role-based",
-  multi: "Multi-condition",
-};
-
-function formatDate(dateString) {
-  if (!dateString) return "—";
-  return new Date(dateString).toLocaleString();
-}
+import { useWalletStore } from "@/lib/store";
+import { useState } from "react";
 
 export default function CampaignDetailPage() {
   const { id } = useParams();
-  const [shareMessage, setShareMessage] = useState("");
+  const { address } = useWalletStore();
+  const [isClaiming, setIsClaiming] = useState(false);
 
   const { data: campaign, isLoading, error } = useQuery({
     queryKey: ["campaign", id],
     queryFn: () => api(`/campaigns/${id}`),
   });
 
-  const countdown = useMemo(() => {
-    if (!campaign) return null;
-    const now = Date.now();
-    const start = campaign.startTime ? new Date(campaign.startTime).getTime() : null;
-    const end = campaign.endTime ? new Date(campaign.endTime).getTime() : null;
-    if (start && now < start) {
-      return `Starts ${new Date(start).toLocaleDateString()}`;
-    }
-    if (end && now > end) {
-      return `Ended ${new Date(end).toLocaleDateString()}`;
-    }
-    if (end) {
-      return `Ends ${new Date(end).toLocaleDateString()}`;
-    }
-    return "Live now";
-  }, [campaign]);
+  const { data: eligibility } = useQuery({
+    queryKey: ["eligibility", id, address],
+    queryFn: () => api(`/campaigns/${id}/eligibility`),
+    enabled: !!address && !!campaign,
+  });
 
-  if (isLoading) return <p>Loading campaign…</p>;
-  if (error) return <p className="text-red-400">{error.message}</p>;
+  const handleClaim = async () => {
+    if (!address) return alert("Please connect your wallet first");
+    setIsClaiming(true);
+    try {
+      // For now, we simulate or call the API claim confirm
+      // In a real app, this might involve a contract transaction
+      await api(`/claims/confirm`, {
+        method: "POST",
+        body: JSON.stringify({ campaignId: id }),
+      });
+      alert("Claim successful!");
+    } catch (err) {
+      alert(`Claim failed: ${err.message}`);
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
+  if (isLoading) return <div className="py-20 text-center">Loading campaign...</div>;
+  if (error) return <div className="py-20 text-center text-red-400">Error: {error.message}</div>;
+
+  const total = campaign.totalSupply || 0;
+  const remaining = campaign.remainingSupply ?? 0;
+  const progress = total ? Math.min(100, Math.round(((total - remaining) / total) * 100)) : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/10">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-3">
-            <p className="text-sm uppercase tracking-[0.3em] text-brand-500">Campaign details</p>
-            <h1 className="text-3xl font-bold">{campaign.name}</h1>
-            <p className="max-w-3xl text-sm text-[var(--muted)]">{campaign.description}</p>
-            <div className="flex flex-wrap gap-2 text-xs text-[var(--muted)]">
-              <span className="rounded-full bg-brand-500/15 px-3 py-1 text-brand-200">{badgeLabels[campaign.eligibilityType] || campaign.eligibilityType}</span>
-              <span className="rounded-full bg-white/5 px-3 py-1">{countdown}</span>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn-ghost text-sm"
-              onClick={async () => {
-                await navigator.clipboard.writeText(window.location.href);
-                setShareMessage("Link copied!");
-                setTimeout(() => setShareMessage(""), 1200);
-              }}
-            >
-              Copy link
-            </button>
-            {shareMessage ? <span className="text-sm text-brand-400">{shareMessage}</span> : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_0.9fr]">
+    <div className="max-w-4xl mx-auto space-y-12">
+      <div className="grid gap-12 md:grid-cols-2">
         <div className="space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h2 className="text-xl font-semibold">Campaign snapshot</h2>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-3xl bg-black/20 p-4">
-                <p className="text-sm text-[var(--muted)]">Status</p>
-                <p className="mt-2 font-semibold capitalize">{campaign.status.replace("_", " ")}</p>
-              </div>
-              <div className="rounded-3xl bg-black/20 p-4">
-                <p className="text-sm text-[var(--muted)]">Supply</p>
-                <p className="mt-2 font-semibold">{campaign.remainingSupply} / {campaign.totalSupply}</p>
-              </div>
-              <div className="rounded-3xl bg-black/20 p-4">
-                <p className="text-sm text-[var(--muted)]">Max per wallet</p>
-                <p className="mt-2 font-semibold">{campaign.maxClaimsPerWallet}</p>
-              </div>
-              <div className="rounded-3xl bg-black/20 p-4">
-                <p className="text-sm text-[var(--muted)]">NFT contract</p>
-                <p className="mt-2 font-semibold">{campaign.nftContractAddress || "Not configured"}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h2 className="text-xl font-semibold">Schedule</h2>
-            <dl className="mt-5 grid gap-4 text-sm text-[var(--muted)]">
-              <div>
-                <dt>Start time</dt>
-                <dd className="mt-1 text-white">{formatDate(campaign.startTime)}</dd>
-              </div>
-              <div>
-                <dt>End time</dt>
-                <dd className="mt-1 text-white">{formatDate(campaign.endTime)}</dd>
-              </div>
-              <div>
-                <dt>Merkle root</dt>
-                <dd className="mt-1 font-mono text-xs text-[var(--muted)] break-all">{campaign.merkleRoot || "Not configured"}</dd>
-              </div>
-            </dl>
+          <div className="aspect-square rounded-3xl bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-700 text-6xl font-bold">
+            NFT
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h2 className="mb-3 text-xl font-semibold">Eligibility</h2>
-            <EligibilityChecker campaignId={id} />
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400 uppercase tracking-wider">
+                {campaign.eligibilityType}
+              </span>
+              <span className="text-zinc-500 text-sm">Created by {campaign.creatorAddress?.slice(0, 8)}...</span>
+            </div>
+            <h1 className="text-4xl font-extrabold">{campaign.name}</h1>
+            <p className="text-zinc-400 leading-relaxed">{campaign.description}</p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-brand-500/5 p-6">
-            <h2 className="mb-3 text-xl font-semibold">Claim</h2>
-            <p className="mb-4 text-sm text-[var(--muted)]">
-              Connect your wallet, confirm eligibility, and claim your NFT allocation securely through the platform.
-            </p>
-            <ClaimButton campaign={campaign} />
+          <div className="card space-y-6">
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-400">Availability</span>
+              <span className="font-bold">{remaining} / {total} left</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
+              <div 
+                className="h-full bg-blue-500 transition-all duration-1000" 
+                style={{ width: `${progress}%` }} 
+              />
+            </div>
+
+            <div className="pt-4">
+              {!address ? (
+                <div className="text-center p-4 rounded-2xl bg-white/5 border border-white/5 text-sm text-zinc-500">
+                  Connect your wallet to check eligibility
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className={`p-4 rounded-2xl border ${eligibility?.isEligible ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400' : 'border-rose-500/20 bg-rose-500/5 text-rose-400'} text-sm flex items-center justify-between`}>
+                    <span>{eligibility?.isEligible ? 'You are eligible!' : 'Not eligible'}</span>
+                    {!eligibility?.isEligible && <span className="text-xs opacity-70">{eligibility?.reason}</span>}
+                  </div>
+                  <button
+                    onClick={handleClaim}
+                    disabled={!eligibility?.isEligible || isClaiming || remaining === 0}
+                    className="btn-primary w-full py-4 text-lg"
+                  >
+                    {isClaiming ? 'Claiming...' : remaining === 0 ? 'Sold Out' : 'Claim NFT'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

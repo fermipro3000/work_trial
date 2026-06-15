@@ -9,10 +9,14 @@ export function Providers({ children }) {
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: { staleTime: 60_000, refetchOnWindowFocus: false },
+          queries: { 
+            staleTime: 60_000, 
+            refetchOnWindowFocus: false 
+          },
         },
       })
   );
+
   return (
     <QueryClientProvider client={client}>
       <AuthHydrate />

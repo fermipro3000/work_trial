@@ -1,114 +1,93 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import { api } from "@/lib/api";
 import { useWalletStore } from "@/lib/store";
+import { CampaignCard } from "@/components/features/CampaignCard";
 
-function StatCard({ title, value, description }) {
-  return (
-    <div className="card rounded-3xl p-6 shadow-lg shadow-black/10">
-      <p className="text-sm text-[var(--muted)]">{title}</p>
-      <p className="mt-2 text-3xl font-semibold">{value}</p>
-      {description ? <p className="mt-3 text-sm text-[var(--muted)]">{description}</p> : null}
-    </div>
-  );
-}
+export default function DashboardPage() {
+  const { address } = useWalletStore();
 
-export default function DashboardOverviewPage() {
-  const { address, token } = useWalletStore();
-
-  const claims = useQuery({
-    queryKey: ["my-claims"],
-    queryFn: () => api("/users/me/claims"),
-    enabled: !!token,
+  const { data: eligible, isLoading: loadingEligible } = useQuery({
+    queryKey: ["eligible-campaigns", address],
+    queryFn: () => api("/users/me/eligible"),
+    enabled: !!address,
   });
 
-  const eligible = useQuery({
-    queryKey: ["my-eligible"],
-    queryFn: () => api("/users/me/eligible"),
-    enabled: !!token,
+  const { data: claims, isLoading: loadingClaims } = useQuery({
+    queryKey: ["my-claims", address],
+    queryFn: () => api("/users/me/claims"),
+    enabled: !!address,
   });
 
   if (!address) {
     return (
-      <div className="card">
-        <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
-        <p className="mt-4 text-sm text-[var(--muted)]">
-          Connect your wallet to view your profile, claim history, and eligible campaigns.
-        </p>
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <h1 className="text-3xl font-bold">Your Dashboard</h1>
+        <p className="text-zinc-500">Connect your wallet to view your eligible campaigns and claim history.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.2em] text-brand-500">Dashboard</p>
-        <h1 className="text-3xl font-bold">Overview</h1>
-        <p className="max-w-2xl text-sm text-[var(--muted)]">
-          Review your recent airdrop activity, pending claims, and important account details.
-        </p>
-      </div>
+    <div className="space-y-12">
+      <header>
+        <h1 className="text-4xl font-bold">Welcome back</h1>
+        <p className="text-zinc-500 mt-2">{address}</p>
+      </header>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard
-          title="Wallet Connected"
-          value={address ? address.slice(0, 6) + "…" + address.slice(-4) : "Not connected"}
-          description="Your active wallet for claim authorization."
-        />
-        <StatCard
-          title="Eligible campaigns"
-          value={eligible.data?.campaigns?.length ?? 0}
-          description="Campaigns currently available to claim."
-        />
-        <StatCard
-          title="Claims submitted"
-          value={claims.data?.claims?.length ?? 0}
-          description="Total claims you have submitted so far."
-        />
-      </div>
-
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="card space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Quick actions</h2>
-              <p className="text-sm text-[var(--muted)]">Jump directly to key dashboard sections.</p>
-            </div>
+      <section className="space-y-6">
+        <h2 className="text-2xl font-bold">Eligible for You</h2>
+        {loadingEligible ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2].map((i) => <div key={i} className="card h-64 animate-pulse" />)}
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {[
-              { label: "Claims", href: "/dashboard/claims" },
-              { label: "Activity", href: "/dashboard/activity" },
-              { label: "Rewards", href: "/dashboard/rewards" },
-              { label: "Settings", href: "/dashboard/settings" },
-            ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm font-medium text-white transition hover:border-brand-500 hover:bg-white/10"
-              >
-                {item.label}
-              </Link>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {eligible?.campaigns?.map((c) => (
+              <CampaignCard key={c.id} campaign={c} />
             ))}
+            {eligible?.campaigns?.length === 0 && (
+              <p className="text-zinc-500">No new eligible campaigns found.</p>
+            )}
           </div>
-        </div>
+        )}
+      </section>
 
-        <div className="card space-y-4">
-          <h2 className="text-xl font-semibold">Next steps</h2>
-          <p className="text-sm text-[var(--muted)]">
-            Navigate between claims, activity, rewards, and account settings to manage your wallet and your NFT airdrop allocations.
-          </p>
-          <div className="space-y-3">
-            <Link href="/dashboard/claims" className="block rounded-2xl border border-white/10 bg-brand-500 px-4 py-3 text-sm font-semibold text-black text-center hover:bg-brand-400">
-              View claim history
-            </Link>
-            <Link href="/dashboard/activity" className="block rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-white text-center hover:bg-white/10">
-              See recent activity
-            </Link>
-          </div>
+      <section className="space-y-6">
+        <h2 className="text-2xl font-bold">Claim History</h2>
+        <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-white/10 bg-white/5 text-zinc-400">
+              <tr>
+                <th className="px-6 py-4 font-medium">Campaign</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {claims?.map((claim) => (
+                <tr key={claim.id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 font-medium">{claim.campaignName}</td>
+                  <td className="px-6 py-4">
+                    <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-bold uppercase text-emerald-400">
+                      {claim.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-zinc-500">
+                    {new Date(claim.createdAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+              {(!claims || claims.length === 0) && !loadingClaims && (
+                <tr>
+                  <td colSpan="3" className="px-6 py-12 text-center text-zinc-500">
+                    You haven't claimed any NFTs yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>

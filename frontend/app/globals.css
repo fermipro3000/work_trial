@@ -3,37 +3,36 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0b1020;
-  --card: #141b2d;
-  --text: #e8edf7;
-  --muted: #8b9bb4;
-  --accent: #38bdf8;
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --muted: #a1a1aa;
+  --brand: #3b82f6;
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border border-white/10 bg-[var(--card)] p-6 shadow-lg;
+    @apply rounded-3xl border border-white/10 bg-white/5 p-6 transition-all;
   }
-
+  
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition;
+    @apply inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50;
   }
-
+  
   .btn-primary {
-    @apply btn bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50;
+    @apply btn bg-blue-600 text-white hover:bg-blue-700;
   }
-
+  
   .btn-ghost {
-    @apply btn border border-white/20 hover:bg-white/5;
+    @apply btn border border-white/10 bg-transparent text-white hover:bg-white/5;
   }
-
+  
   .input {
-    @apply w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-brand-500;
+    @apply w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500;
   }
 }
