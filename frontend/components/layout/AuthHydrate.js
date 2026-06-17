@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useWalletStore } from "@/lib/store";
 
-export function AuthHydrate() {
+export default function AuthHydrate() {
   const setToken = useWalletStore((s) => s.setToken);
 
   useEffect(() => {

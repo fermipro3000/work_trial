@@ -22,7 +22,12 @@ async function loadDb() {
   if (cache) return cache;
   try {
     const raw = await fs.readFile(DATA_FILE, "utf8");
-    cache = { ...EMPTY_DB, ...JSON.parse(raw) };
+    try {
+      cache = { ...EMPTY_DB, ...JSON.parse(raw) };
+    } catch (parseErr) {
+      console.error("Error parsing data.json, it might be corrupted. Starting with empty DB.", parseErr);
+      cache = structuredClone(EMPTY_DB);
+    }
   } catch (err) {
     if (err.code === "ENOENT") {
       cache = structuredClone(EMPTY_DB);
@@ -31,6 +36,7 @@ async function loadDb() {
       throw err;
     }
   }
+  // Ensure all top-level keys exist and are arrays
   for (const key of Object.keys(EMPTY_DB)) {
     if (!Array.isArray(cache[key])) cache[key] = [];
   }
@@ -39,9 +45,25 @@ async function loadDb() {
 
 async function saveDb() {
   const data = cache || (await loadDb());
-  writeQueue = writeQueue.then(() =>
-    fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), "utf8")
-  );
+  const tmpFile = `${DATA_FILE}.tmp`;
+
+  writeQueue = writeQueue.then(async () => {
+    try {
+      const content = JSON.stringify(data, null, 2);
+      await fs.writeFile(tmpFile, content, "utf8");
+      await fs.rename(tmpFile, DATA_FILE);
+    } catch (err) {
+      console.error("Failed to save database:", err);
+      // Try to clean up temp file if it exists
+      try {
+        await fs.unlink(tmpFile);
+      } catch (unlinkErr) {
+        // ignore
+      }
+      throw err;
+    }
+  });
+
   await writeQueue;
 }
 

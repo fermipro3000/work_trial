@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { WalletConnector } from "./WalletConnector";
+import dynamic from "next/dynamic";
+
+const WalletConnector = dynamic(
+  () => import("./WalletConnector"),
+  { ssr: false }
+);
 
 const links = [
   { href: "/", label: "Campaigns" },

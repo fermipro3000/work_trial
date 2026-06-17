@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useWalletStore } from "@/lib/store";
-import { CampaignCard } from "@/components/features/CampaignCard";
+import CampaignCard from "@/components/features/CampaignCard";
 
 export default function DashboardPage() {
   const { address } = useWalletStore();

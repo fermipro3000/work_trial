@@ -16,7 +16,8 @@ const STATUS_CLASSES = {
   cancelled: "bg-rose-500/10 text-rose-400",
 };
 
-export function CampaignCard({ campaign }) {
+export default function CampaignCard({ campaign }) {
+  if (!campaign) return null;
   const badge = BADGES[campaign.eligibilityType] || campaign.eligibilityType;
   const statusClass = STATUS_CLASSES[campaign.status] || "bg-white/10 text-white";
   const total = campaign.totalSupply || 0;
@@ -32,7 +33,7 @@ export function CampaignCard({ campaign }) {
         <div className="flex items-start justify-between gap-4">
           <h3 className="text-lg font-bold leading-tight">{campaign.name}</h3>
           <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusClass}`}>
-            {campaign.status.replace("_", " ")}
+            {(campaign.status || "").replace("_", " ")}
           </span>
         </div>
         
