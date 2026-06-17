@@ -1,6 +1,6 @@
 import "./globals.css";
 import Providers from "@/components/layout/Providers";
-import { Nav } from "@/components/layout/Nav";
+import Nav from "@/components/layout/Nav";
 
 export const metadata = {
   title: "NFT Airdrop Platform",
