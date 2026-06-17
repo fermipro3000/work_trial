@@ -6,7 +6,7 @@ import { SiweMessage } from "siwe";
 import { api } from "@/lib/api";
 import { useWalletStore } from "@/lib/store";
 
-export function WalletConnector() {
+export default function WalletConnector() {
   const { address, setWallet, setToken, disconnect } = useWalletStore();
 
   const connect = useCallback(async () => {

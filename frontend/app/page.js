@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { CampaignCard } from "@/components/features/CampaignCard";
+import CampaignCard from "@/components/features/CampaignCard";
 
 const statusOptions = ["", "active", "draft", "pending_review"];
 const eligibilityOptions = ["", "public", "whitelist", "erc20", "erc721", "role", "multi"];

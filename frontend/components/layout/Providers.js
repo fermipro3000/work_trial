@@ -2,9 +2,9 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { AuthHydrate } from "./AuthHydrate";
+import AuthHydrate from "./AuthHydrate";
 
-export function Providers({ children }) {
+export default function Providers({ children }) {
   const [client] = useState(
     () =>
       new QueryClient({

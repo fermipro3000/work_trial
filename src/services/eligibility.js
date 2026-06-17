@@ -10,24 +10,41 @@ const { config } = require("../config");
 
 const ERC20_ABI = ["function balanceOf(address) view returns (uint256)"];
 
+// In-memory cache for eligibility results to boost performance
+// Maps "userId:campaignId:wallet" or "null:campaignId:wallet" to { result, expires }
+const eligibilityResultCache = new Map();
+const CACHE_TTL = 30 * 1000; // 30 seconds
+
 async function checkEligibility(userId, wallet, campaign) {
+  const cacheKey = `${userId || "null"}:${campaign.id}:${wallet.toLowerCase()}`;
+  const cached = eligibilityResultCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) {
+    return cached.result;
+  }
+
   const reasons = [];
   let eligible = true;
 
   if (await isBlacklisted(wallet)) {
-    return { eligible: false, reasons: ["Wallet is blacklisted"] };
+    const result = { eligible: false, reasons: ["Wallet is blacklisted"] };
+    eligibilityResultCache.set(cacheKey, { result, expires: Date.now() + CACHE_TTL });
+    return result;
   }
 
   const claimed = await getClaimedTotal(campaign.id, wallet);
   if (claimed >= campaign.max_claims_per_wallet) {
-    return {
+    const result = {
       eligible: false,
       reasons: ["Already claimed maximum for this campaign"],
     };
+    eligibilityResultCache.set(cacheKey, { result, expires: Date.now() + CACHE_TTL });
+    return result;
   }
 
   if (campaign.status !== "active") {
-    return { eligible: false, reasons: [`Campaign status: ${campaign.status}`] };
+    const result = { eligible: false, reasons: [`Campaign status: ${campaign.status}`] };
+    eligibilityResultCache.set(cacheKey, { result, expires: Date.now() + CACHE_TTL });
+    return result;
   }
 
   const now = new Date();
@@ -95,11 +112,17 @@ async function checkEligibility(userId, wallet, campaign) {
     }
   }
 
+  const result = { eligible, reasons };
+  eligibilityResultCache.set(cacheKey, { result, expires: Date.now() + CACHE_TTL });
+
   if (userId) {
-    await upsertEligibilityCache(userId, campaign.id, eligible, reasons);
+    // Also update the persistence layer cache if needed
+    await upsertEligibilityCache(userId, campaign.id, eligible, reasons).catch(err => {
+        console.error("Failed to update persistent eligibility cache:", err);
+    });
   }
 
-  return { eligible, reasons };
+  return result;
 }
 
 module.exports = { checkEligibility };
